@@ -25,11 +25,8 @@ const authRoutes = require('./routes/authRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', require('./routes/taskRoutes'));
-app.use('/api/habits', require('./routes/habitRoutes'));
-app.use('/api/learning', require('./routes/learningRoutes'));
 app.use('/api/notes', require('./routes/noteRoutes'));
 app.use('/api/journal', require('./routes/journalRoutes'));
-app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 
 app.get('/', (req, res) => {
     res.send('Smart Life Tracker API is running');
