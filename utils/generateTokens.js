@@ -14,7 +14,6 @@ const generateTokens = (res, userId) => {
         secure: process.env.NODE_ENV !== 'development', // Use secure cookies in production
         sameSite: process.env.NODE_ENV === 'development' ? 'lax' : 'none', // Allow cross-site in production
         maxAge: 3 * 60 * 60 * 1000, // 3 hours
-        path: '/'
 
     });
 
@@ -23,7 +22,6 @@ const generateTokens = (res, userId) => {
         secure: process.env.NODE_ENV !== 'development',
         sameSite: process.env.NODE_ENV === 'development' ? 'lax' : 'none',
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-        path: '/'
 
     });
 };
