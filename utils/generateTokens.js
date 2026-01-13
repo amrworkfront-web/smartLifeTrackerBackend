@@ -11,18 +11,18 @@ const generateTokens = (res, userId) => {
 
     res.cookie('accessToken', accessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV !== 'development', // Use secure cookies in production
-        sameSite: process.env.NODE_ENV === 'development' ? 'lax' : 'none', // Allow cross-site in production
+        secure: process.env.NODE_ENV !== 'development', // Secure in production
+        sameSite: 'lax', // Lax is safe and works well with first-party (proxied) requests
         maxAge: 3 * 60 * 60 * 1000, // 3 hours
-
+        path: '/'
     });
 
     res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV !== 'development',
-        sameSite: process.env.NODE_ENV === 'development' ? 'lax' : 'none',
+        sameSite: 'lax',
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-
+        path: '/'
     });
 };
 
