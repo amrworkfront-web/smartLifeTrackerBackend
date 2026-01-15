@@ -31,17 +31,19 @@ const generateTokens = (res, userId) => {
 };
 
 const clearTokens = (res) => {
+    const isProduction = process.env.NODE_ENV === 'production';
+
     res.cookie('accessToken', '', {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        secure: isProduction, // must be true in production
+        sameSite: isProduction ? 'none' : 'lax',
         expires: new Date(0),
     });
 
     res.cookie('refreshToken', '', {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        secure: isProduction, // must be true in production
+        sameSite: isProduction ? 'none' : 'lax',
         expires: new Date(0),
     });
 };
