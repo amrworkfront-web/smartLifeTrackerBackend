@@ -19,6 +19,8 @@ const generateTokens = (res, userId) => {
         httpOnly: true,
         secure: isProduction,
         sameSite: isProduction ? 'none' : 'lax',
+            domain: '.vercel.app', // 🔥 مهم جدًا
+
         maxAge: 3 * 60 * 60 * 1000, // 3 hours
     });
 
@@ -26,6 +28,8 @@ const generateTokens = (res, userId) => {
         httpOnly: true,
         secure: isProduction,
         sameSite: isProduction ? 'none' : 'lax',
+            domain: '.vercel.app', // 🔥 مهم جدًا
+
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });
 };
