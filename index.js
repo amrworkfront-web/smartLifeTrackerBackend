@@ -30,8 +30,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 const allowedOrigins = [
-    process.env.CLIENT_URL,
-    'http://localhost:3000'
+    'https://smartlifetrackerfrontend.vercel.app', // Only allow Vercel frontend
 ];
 
 app.use(cors({
@@ -42,9 +41,8 @@ app.use(cors({
             callback(new Error('Not allowed by CORS'));
         }
     },
-    credentials: true
+    credentials: true // Allow cookies to be sent
 }));
-
 // Routes
 const authRoutes = require('./routes/authRoutes');
 
