@@ -13,9 +13,6 @@ connectDB();
 const app = express();
 const port = process.env.PORT || 5000;
 
-// Trust Proxy (Required for Vercel/Railway Proxy)
-app.set('trust proxy', 1);
-
 // Security Middleware
 app.use(helmet());
 
