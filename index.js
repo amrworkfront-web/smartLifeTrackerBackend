@@ -28,19 +28,26 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 const allowedOrigins = [
-    'https://smartlifetrackerfrontend.vercel.app', // Only allow Vercel frontend
+    process.env.CLIENT_URL, // https://smartlifetrackerfrontend.vercel.app
+    'http://localhost:3000',
 ];
 
 app.use(cors({
-    origin: function (origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
+    origin: (origin, callback) => {
+        // السماح لـ Postman / SSR / server-to-server
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
         }
+
+        return callback(null, false);
     },
-    credentials: true // Allow cookies to be sent
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
 // Routes
 const authRoutes = require('./routes/authRoutes');
 

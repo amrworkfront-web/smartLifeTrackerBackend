@@ -19,20 +19,14 @@ const generateTokens = (res, userId) => {
         httpOnly: true,
         secure: isProduction,
         sameSite: isProduction ? 'none' : 'lax',
-            domain: '.vercel.app', // 🔥 مهم جدًا
-
         maxAge: 3 * 60 * 60 * 1000, // 3 hours
-
     });
 
     res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
         secure: isProduction,
         sameSite: isProduction ? 'none' : 'lax',
-            domain: '.vercel.app', // 🔥 مهم جدًا
-
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-
     });
 };
 
@@ -41,14 +35,14 @@ const clearTokens = (res) => {
 
     res.cookie('accessToken', '', {
         httpOnly: true,
-        secure: isProduction, // must be true in production
+        secure: isProduction,
         sameSite: isProduction ? 'none' : 'lax',
         expires: new Date(0),
     });
 
     res.cookie('refreshToken', '', {
         httpOnly: true,
-        secure: isProduction, // must be true in production
+        secure: isProduction,
         sameSite: isProduction ? 'none' : 'lax',
         expires: new Date(0),
     });
