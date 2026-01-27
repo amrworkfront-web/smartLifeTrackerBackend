@@ -28,25 +28,28 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 const allowedOrigins = [
-    process.env.CLIENT_URL, // https://smartlifetrackerfrontend.vercel.app
-    'http://localhost:3000',
+  process.env.CLIENT_URL,      // Next.js production (Vercel)
+  "http://localhost:3000",     // Next.js local
 ];
-// {
-//     origin: (origin, callback) => {
-//         // السماح لـ Postman / SSR / server-to-server
-//         if (!origin) return callback(null, true);
 
-//         if (allowedOrigins.includes(origin)) {
-//             return callback(null, true);
-//         }
+app.use(cors({
+  origin: (origin, callback) => {
+    // السماح لـ:
+    // - React Native / Expo
+    // - Postman
+    // - Server-to-server
+    if (!origin) return callback(null, true);
 
-//         return callback(null, false);
-//     },
-//     credentials: true,
-//     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-//     allowedHeaders: ['Content-Type', 'Authorization'],
-// }
-app.use(cors());
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
 
 // Routes
 const authRoutes = require('./routes/authRoutes');
