@@ -31,22 +31,22 @@ const allowedOrigins = [
     process.env.CLIENT_URL, // https://smartlifetrackerfrontend.vercel.app
     'http://localhost:3000',
 ];
+// {
+//     origin: (origin, callback) => {
+//         // السماح لـ Postman / SSR / server-to-server
+//         if (!origin) return callback(null, true);
 
-app.use(cors({
-    origin: (origin, callback) => {
-        // السماح لـ Postman / SSR / server-to-server
-        if (!origin) return callback(null, true);
+//         if (allowedOrigins.includes(origin)) {
+//             return callback(null, true);
+//         }
 
-        if (allowedOrigins.includes(origin)) {
-            return callback(null, true);
-        }
-
-        return callback(null, false);
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+//         return callback(null, false);
+//     },
+//     credentials: true,
+//     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+//     allowedHeaders: ['Content-Type', 'Authorization'],
+// }
+app.use(cors());
 
 // Routes
 const authRoutes = require('./routes/authRoutes');
