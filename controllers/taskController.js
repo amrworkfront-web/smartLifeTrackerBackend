@@ -12,44 +12,63 @@ const Task = require('../models/Task');
 // @route   GET /tasks
 // @access  Private
 const getTasks = asyncHandler(async (req, res) => {
-    const { priority, type } = req.query;
+  const { priority, type,search } = req.query;
 
-    // base filter (important)
-    let filter = {
-        userId: req.user.id
+  // -------- Base filter --------
+  let filter = {
+    userId: req.user.id,
+  };
+if (search) {
+  filter.title = { $regex: search, $options: "i" };
+}
+  // -------- Priority Filter --------
+  if (priority && priority !== "all") {
+    filter.priority = priority;
+  }
+
+  // -------- Date Setup --------
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+
+  const endOfToday = new Date(today);
+  endOfToday.setHours(23, 59, 59, 999);
+
+  // -------- Date Filters --------
+
+  // 1) لو مفيش type خالص (All)
+  if (!type) {
+    filter.$or = [
+      { deadline: { $exists: false } }, // اللي معندوش deadline
+      { deadline: { $gte: today, $lt: tomorrow } }, // اللي deadline بتاعه النهارده
+      { deadline: { $gt: endOfToday } }, // اللي في المستقبل
+    ];
+  }
+
+  // 2) لو Today
+  else if (type === "today") {
+    filter.$or = [
+      { deadline: { $exists: false } }, // يظهر برضه
+      { deadline: { $gte: today, $lt: tomorrow } },
+    ];
+  }
+
+  // 3) لو Upcoming
+  else if (type === "upcoming") {
+    filter.deadline = {
+      $gt: endOfToday, // بعد نهاية النهارده
     };
+  }
 
-    // -------- Priority Filter --------
-    if (priority && priority !== 'all') {
-        filter.priority = priority;
-    }
+  const tasks = await Task.find(filter).sort({
+    deadline: 1,
+    createdAt: -1,
+  });
 
-    // -------- Date Filters --------
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    if (type === 'today') {
-        const tomorrow = new Date(today);
-        tomorrow.setDate(today.getDate() + 1);
-
-        filter.deadline = {
-            $gte: today,
-            $lt: tomorrow
-        };
-    }
-
-    if (type === 'upcoming') {
-        filter.deadline = {
-            $gt: today
-        };
-    }
-
-    const tasks = await Task.find(filter)
-        .sort({ deadline: 1, createdAt: -1 });
-
-    res.status(200).json(tasks);
+  res.status(200).json(tasks);
 });
-
 
 // @desc    Create a new task
 // @route   POST /tasks

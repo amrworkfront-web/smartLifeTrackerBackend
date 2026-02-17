@@ -6,7 +6,7 @@ const generateTokens = (res, userId) => {
     const accessToken = jwt.sign(
         { userId },
         process.env.JWT_ACCESS_SECRET,
-        { expiresIn: '3h' }
+        { expiresIn: '7d' }
     );
 
     const refreshToken = jwt.sign(
@@ -19,7 +19,7 @@ const generateTokens = (res, userId) => {
         httpOnly: true,
         secure: isProduction,
         sameSite: isProduction ? 'none' : 'lax',
-        maxAge: 3 * 60 * 60 * 1000, // 3 hours
+        maxAge:7* 24 * 60 * 60 * 1000, 
     });
 
     res.cookie('refreshToken', refreshToken, {

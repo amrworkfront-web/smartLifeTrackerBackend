@@ -5,7 +5,12 @@ const Note = require('../models/Note');
 // @route   GET /notes
 // @access  Private
 const getNotes = asyncHandler(async (req, res) => {
-    const notes = await Note.find({ userId: req.user.id }).sort({ createdAt: -1 });
+    const{search}=req.query
+      let filter = {userId: req.user.id};
+  if (search) {
+  filter.title = { $regex: search, $options: "i" };
+}
+  const notes = await Note.find(filter).sort({ createdAt: -1 });
     res.status(200).json(notes);
 });
 
