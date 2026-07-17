@@ -8,20 +8,15 @@ const {
 } = require('../controllers/taskController');
 const { protect } = require('../middlewares/authMiddleware');
 const { body } = require('express-validator');
+const { handleValidationErrors } = require('../middlewares/validationMiddleware');
 
-// Validation
 const validateTask = [
-    body('title').notEmpty().withMessage('Title is required')
+    body('title').notEmpty().withMessage('Title is required').trim(),
+    body('priority')
+        .optional()
+        .isIn(['High', 'Medium', 'Low'])
+        .withMessage('Priority must be High, Medium, or Low'),
 ];
-
-const handleValidationErrors = (req, res, next) => {
-    const { validationResult } = require('express-validator');
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-    }
-    next();
-};
 
 router.route('/')
     .get(protect, getTasks)

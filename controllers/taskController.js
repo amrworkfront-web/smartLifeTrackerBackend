@@ -1,80 +1,69 @@
 const asyncHandler = require('../utils/asyncHandler');
 const Task = require('../models/Task');
 
-// @desc    Get all tasks for the logged in user
-// @route   GET /tasks
-// @access  Private
-// const getTasks = asyncHandler(async (req, res) => {
-//     const tasks = await Task.find({ userId: req.user.id }).sort({ createdAt: -1 });
-//     res.status(200).json(tasks);
-// });
-// @desc    Get all tasks (with filters)
-// @route   GET /tasks
-// @access  Private
 const getTasks = asyncHandler(async (req, res) => {
-  const { priority, type,search } = req.query;
+    const { priority, type, search, page = 1, limit = 50 } = req.query;
 
-  // -------- Base filter --------
-  let filter = {
-    userId: req.user.id,
-  };
-if (search) {
-  filter.title = { $regex: search, $options: "i" };
-}
-  // -------- Priority Filter --------
-  if (priority && priority !== "all") {
-    filter.priority = priority;
-  }
+    const filter = { userId: req.user.id };
 
-  // -------- Date Setup --------
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+    if (search) {
+        filter.title = { $regex: search, $options: 'i' };
+    }
 
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
+    if (priority && priority !== 'all') {
+        filter.priority = priority;
+    }
 
-  const endOfToday = new Date(today);
-  endOfToday.setHours(23, 59, 59, 999);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-  // -------- Date Filters --------
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
 
-  // 1) لو مفيش type خالص (All)
-  if (!type) {
-    filter.$or = [
-      { deadline: { $exists: false } }, // اللي معندوش deadline
-      { deadline: { $gte: today, $lt: tomorrow } }, // اللي deadline بتاعه النهارده
-      { deadline: { $gt: endOfToday } }, // اللي في المستقبل
-    ];
-  }
+    const endOfToday = new Date(today);
+    endOfToday.setHours(23, 59, 59, 999);
 
-  // 2) لو Today
-  else if (type === "today") {
-    filter.$or = [
-      { deadline: { $exists: false } }, // يظهر برضه
-      { deadline: { $gte: today, $lt: tomorrow } },
-    ];
-  }
+    if (!type) {
+        filter.$or = [
+            { deadline: { $exists: false } },
+            { deadline: { $gte: today, $lt: tomorrow } },
+            { deadline: { $gt: endOfToday } },
+        ];
+    } else if (type === 'today') {
+        filter.$or = [
+            { deadline: { $exists: false } },
+            { deadline: { $gte: today, $lt: tomorrow } },
+        ];
+    } else if (type === 'upcoming') {
+        filter.deadline = { $gt: endOfToday };
+    }
 
-  // 3) لو Upcoming
-  else if (type === "upcoming") {
-    filter.deadline = {
-      $gt: endOfToday, // بعد نهاية النهارده
-    };
-  }
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
+    const skip = (pageNum - 1) * limitNum;
 
-  const tasks = await Task.find(filter).sort({
-    deadline: 1,
-    createdAt: -1,
-  });
+    const [tasks, total] = await Promise.all([
+        Task.find(filter)
+            .sort({ deadline: 1, createdAt: -1 })
+            .skip(skip)
+            .limit(limitNum),
+        Task.countDocuments(filter),
+    ]);
 
-  res.status(200).json(tasks);
+    res.status(200).json({
+        success: true,
+        data: tasks,
+        pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total,
+            pages: Math.ceil(total / limitNum),
+        },
+    });
 });
 
-// @desc    Create a new task
-// @route   POST /tasks
-// @access  Private
 const createTask = asyncHandler(async (req, res) => {
-    const { title, description, priority, status, dueDate,deadline } = req.body;
+    const { title, description, priority, status, dueDate, deadline } = req.body;
 
     if (!title) {
         res.status(400);
@@ -88,15 +77,12 @@ const createTask = asyncHandler(async (req, res) => {
         priority,
         deadline,
         status,
-        dueDate
+        dueDate,
     });
 
-    res.status(201).json(task);
+    res.status(201).json({ success: true, data: task });
 });
 
-// @desc    Update task
-// @route   PUT /tasks/:id
-// @access  Private
 const updateTask = asyncHandler(async (req, res) => {
     const task = await Task.findById(req.params.id);
 
@@ -105,28 +91,30 @@ const updateTask = asyncHandler(async (req, res) => {
         throw new Error('Task not found');
     }
 
-    // Check for user
-    if (!req.user) {
-        res.status(401);
-        throw new Error('User not found');
-    }
-
-    // Make sure the logged in user matches the task user
     if (task.userId.toString() !== req.user.id) {
-        res.status(401);
+        res.status(403);
         throw new Error('User not authorized');
     }
 
-    const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, {
-        new: true,
-    });
+    const { title, description, priority, status, deadline, dueDate } = req.body;
 
-    res.status(200).json(updatedTask);
+    const updatedFields = {};
+    if (title !== undefined) updatedFields.title = title;
+    if (description !== undefined) updatedFields.description = description;
+    if (priority !== undefined) updatedFields.priority = priority;
+    if (status !== undefined) updatedFields.status = status;
+    if (deadline !== undefined) updatedFields.deadline = deadline;
+    if (dueDate !== undefined) updatedFields.dueDate = dueDate;
+
+    const updatedTask = await Task.findByIdAndUpdate(
+        req.params.id,
+        { $set: updatedFields },
+        { new: true, runValidators: true }
+    );
+
+    res.status(200).json({ success: true, data: updatedTask });
 });
 
-// @desc    Delete task
-// @route   DELETE /tasks/:id
-// @access  Private
 const deleteTask = asyncHandler(async (req, res) => {
     const task = await Task.findById(req.params.id);
 
@@ -135,21 +123,14 @@ const deleteTask = asyncHandler(async (req, res) => {
         throw new Error('Task not found');
     }
 
-    // Check for user
-    if (!req.user) {
-        res.status(401);
-        throw new Error('User not found');
-    }
-
-    // Make sure the logged in user matches the task user
     if (task.userId.toString() !== req.user.id) {
-        res.status(401);
+        res.status(403);
         throw new Error('User not authorized');
     }
 
     await task.deleteOne();
 
-    res.status(200).json({ id: req.params.id });
+    res.status(200).json({ success: true, data: { id: req.params.id } });
 });
 
 module.exports = {

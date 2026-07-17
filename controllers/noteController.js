@@ -1,22 +1,39 @@
 const asyncHandler = require('../utils/asyncHandler');
 const Note = require('../models/Note');
 
-// @desc    Get all notes
-// @route   GET /notes
-// @access  Private
 const getNotes = asyncHandler(async (req, res) => {
-    const{search}=req.query
-      let filter = {userId: req.user.id};
-  if (search) {
-  filter.title = { $regex: search, $options: "i" };
-}
-  const notes = await Note.find(filter).sort({ createdAt: -1 });
-    res.status(200).json(notes);
+    const { search, page = 1, limit = 50 } = req.query;
+
+    const filter = { userId: req.user.id };
+
+    if (search) {
+        filter.title = { $regex: search, $options: 'i' };
+    }
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [notes, total] = await Promise.all([
+        Note.find(filter)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limitNum),
+        Note.countDocuments(filter),
+    ]);
+
+    res.status(200).json({
+        success: true,
+        data: notes,
+        pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total,
+            pages: Math.ceil(total / limitNum),
+        },
+    });
 });
 
-// @desc    Create a new note
-// @route   POST /notes
-// @access  Private
 const createNote = asyncHandler(async (req, res) => {
     const { title, content, tag } = req.body;
 
@@ -29,15 +46,12 @@ const createNote = asyncHandler(async (req, res) => {
         userId: req.user.id,
         title,
         content,
-        tag
+        tag,
     });
 
-    res.status(201).json(note);
+    res.status(201).json({ success: true, data: note });
 });
 
-// @desc    Update a note
-// @route   PUT /notes/:id
-// @access  Private
 const updateNote = asyncHandler(async (req, res) => {
     const note = await Note.findById(req.params.id);
 
@@ -47,20 +61,26 @@ const updateNote = asyncHandler(async (req, res) => {
     }
 
     if (note.userId.toString() !== req.user.id) {
-        res.status(401);
+        res.status(403);
         throw new Error('User not authorized');
     }
 
-    const updatedNote = await Note.findByIdAndUpdate(req.params.id, req.body, {
-        new: true
-    });
+    const { title, content, tag } = req.body;
 
-    res.status(200).json(updatedNote);
+    const updatedFields = {};
+    if (title !== undefined) updatedFields.title = title;
+    if (content !== undefined) updatedFields.content = content;
+    if (tag !== undefined) updatedFields.tag = tag;
+
+    const updatedNote = await Note.findByIdAndUpdate(
+        req.params.id,
+        { $set: updatedFields },
+        { new: true, runValidators: true }
+    );
+
+    res.status(200).json({ success: true, data: updatedNote });
 });
 
-// @desc    Delete a note
-// @route   DELETE /notes/:id
-// @access  Private
 const deleteNote = asyncHandler(async (req, res) => {
     const note = await Note.findById(req.params.id);
 
@@ -70,13 +90,13 @@ const deleteNote = asyncHandler(async (req, res) => {
     }
 
     if (note.userId.toString() !== req.user.id) {
-        res.status(401);
+        res.status(403);
         throw new Error('User not authorized');
     }
 
     await note.deleteOne();
 
-    res.status(200).json({ id: req.params.id });
+    res.status(200).json({ success: true, data: { id: req.params.id } });
 });
 
 module.exports = {

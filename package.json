@@ -1,10 +1,9 @@
 {
   "name": "smartlifetrackerbackend",
   "version": "1.0.0",
-  "description": "",
+  "description": "REST API for Smart Life Tracker - task management, notes, and journaling",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
     "dev": "nodemon index.js"
   },
@@ -21,8 +20,9 @@
     "express-validator": "^7.3.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.1.2",
-    "morgan": "^1.10.1",
+    "mongoose": "^9.1.2"
+  },
+  "devDependencies": {
     "nodemon": "^3.1.11"
   }
 }

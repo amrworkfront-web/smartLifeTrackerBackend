@@ -1,84 +1,115 @@
-const asyncHandler = require("../utils/asyncHandler");
-const Journal = require("../models/Journal");
+const asyncHandler = require('../utils/asyncHandler');
+const Journal = require('../models/Journal');
 
-// @desc    Get all journal entries
-// @route   GET /journal
-// @access  Private
 const getJournals = asyncHandler(async (req, res) => {
-  const { search } = req.query;
-  let filter = { userId: req.user.id };
-  if (search) {
-    filter.title = { $regex: search, $options: "i" };
-  }
-  const journals = await Journal.find(filter).sort({ createdAt: -1 });
+    const { search, page = 1, limit = 50 } = req.query;
 
-  res.status(200).json(journals);
+    const filter = { userId: req.user.id };
+
+    if (search) {
+        filter.title = { $regex: search, $options: 'i' };
+    }
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [journals, total] = await Promise.all([
+        Journal.find(filter)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limitNum),
+        Journal.countDocuments(filter),
+    ]);
+
+    res.status(200).json({
+        success: true,
+        data: journals,
+        pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total,
+            pages: Math.ceil(total / limitNum),
+        },
+    });
 });
 
-// @desc    Create a new journal entry
-// @route   POST /journal
-// @access  Private
 const createJournal = asyncHandler(async (req, res) => {
-  const { title, mood, content } = req.body;
+    const { title, mood, content } = req.body;
 
-  if (!title || !mood || !content) {
-    res.status(400);
-    throw new Error("Title, mood, and content are required");
-  }
+    if (!title || !mood || !content) {
+        res.status(400);
+        throw new Error('Title, mood, and content are required');
+    }
 
-  // Prevent more than one journal per day
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
 
-  const endOfDay = new Date();
-  endOfDay.setHours(23, 59, 59, 999);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
 
-  const existingEntry = await Journal.findOne({
-    userId: req.user.id,
-    createdAt: { $gte: startOfDay, $lte: endOfDay },
-  });
+    const existingEntry = await Journal.findOne({
+        userId: req.user.id,
+        createdAt: { $gte: startOfDay, $lte: endOfDay },
+    });
 
-  if (existingEntry) {
-    res.status(400);
-    throw new Error("Journal entry for today already exists");
-  }
+    if (existingEntry) {
+        res.status(409);
+        throw new Error('Journal entry for today already exists');
+    }
 
-  const journal = await Journal.create({
-    userId: req.user.id,
-    title,
-    mood,
-    content,
-  });
+    const journal = await Journal.create({
+        userId: req.user.id,
+        title,
+        mood,
+        content,
+    });
 
-  res.status(201).json(journal);
+    res.status(201).json({ success: true, data: journal });
 });
 
-// @desc    Update journal entry
-// @route   PUT /journal/:id
-// @access  Private
 const updateJournal = asyncHandler(async (req, res) => {
-  const journal = await Journal.findById(req.params.id);
+    const journal = await Journal.findById(req.params.id);
 
-  if (!journal) {
-    res.status(404);
-    throw new Error("Journal not found");
-  }
+    if (!journal) {
+        res.status(404);
+        throw new Error('Journal not found');
+    }
 
-  if (journal.userId.toString() !== req.user.id) {
-    res.status(401);
-    throw new Error("User not authorized");
-  }
+    if (journal.userId.toString() !== req.user.id) {
+        res.status(403);
+        throw new Error('User not authorized');
+    }
 
-  journal.title = req.body.title ?? journal.title;
-  journal.mood = req.body.mood ?? journal.mood;
-  journal.content = req.body.content ?? journal.content;
+    journal.title = req.body.title ?? journal.title;
+    journal.mood = req.body.mood ?? journal.mood;
+    journal.content = req.body.content ?? journal.content;
 
-  const updatedJournal = await journal.save();
-  res.status(200).json(updatedJournal);
+    const updatedJournal = await journal.save();
+    res.status(200).json({ success: true, data: updatedJournal });
+});
+
+const deleteJournal = asyncHandler(async (req, res) => {
+    const journal = await Journal.findById(req.params.id);
+
+    if (!journal) {
+        res.status(404);
+        throw new Error('Journal not found');
+    }
+
+    if (journal.userId.toString() !== req.user.id) {
+        res.status(403);
+        throw new Error('User not authorized');
+    }
+
+    await journal.deleteOne();
+
+    res.status(200).json({ success: true, data: { id: req.params.id } });
 });
 
 module.exports = {
-  getJournals,
-  createJournal,
-  updateJournal,
+    getJournals,
+    createJournal,
+    updateJournal,
+    deleteJournal,
 };
